@@ -1,15 +1,15 @@
 import streamlit as st
-import asyncio
-from aiohttp import web
+import requests
+from threading import Thread
 import datetime
 
 # Shared data to display in Streamlit
 messages = []
 
-async def handle_slack_event(request):
-    data = await request.json()
+def handle_slack_event(request):
+    data = request.json()
     if 'challenge' in data:
-        return web.json_response({'challenge': data['challenge']})
+        return {'challenge': data['challenge']}
     
     # Process the event data
     event = data.get('event', {})
@@ -27,17 +27,23 @@ async def handle_slack_event(request):
             'timestamp': timestamp
         })
     
-    return web.json_response({'status': 'OK'})
+    return {'status': 'OK'}
 
-async def start_server():
-    app = web.Application()
-    app.router.add_post('/slack/events', handle_slack_event)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, port=8000)  # Using port 8000 as Streamlit typically uses 8501
-    await site.start()
+def start_server():
+    import flask
+    app = flask.Flask(__name__)
+    
+    @app.route('/slack/events', methods=['POST'])
+    def slack_events():
+        response_data = handle_slack_event(flask.request)
+        return flask.jsonify(response_data)
 
-async def main():
+    app.run(host='0.0.0.0', port=8000)
+
+# Start the Flask server in a separate thread
+Thread(target=start_server).start()
+
+def main():
     st.title("Slack Message Logger")
     st.write("This Streamlit app captures messages from Slack and displays them.")
     
@@ -51,6 +57,5 @@ async def main():
     else:
         st.write("No messages received yet.")
 
-# Use asyncio.run() to run the Streamlit app and the aiohttp server
-asyncio.run(start_server())
-st.asyncio(main())
+if __name__ == "__main__":
+    main()
