@@ -37,7 +37,7 @@ async def start_server():
     site = web.TCPSite(runner, port=8000)  # Using port 8000 as Streamlit typically uses 8501
     await site.start()
 
-def main():
+async def main():
     st.title("Slack Message Logger")
     st.write("This Streamlit app captures messages from Slack and displays them.")
     
@@ -51,8 +51,6 @@ def main():
     else:
         st.write("No messages received yet.")
 
-if __name__ == "__main__":
-    # Use asyncio to run both the Streamlit app and the aiohttp server
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_server())
-    main()
+# Use asyncio.run() to run the Streamlit app and the aiohttp server
+asyncio.run(start_server())
+st.asyncio(main())
